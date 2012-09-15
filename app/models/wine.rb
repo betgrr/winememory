@@ -1,3 +1,8 @@
 class Wine < ActiveRecord::Base
-  attr_accessible :name, :type, :year
+  
+  Wine.inheritance_column = 'inherited_type'
+  
+  mount_uploader :label, LabelUploader
+  
+  attr_accessible :name, :type, :year, :label
 end
