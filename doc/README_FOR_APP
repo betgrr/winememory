@@ -1,2 +1,124 @@
-Use this README file to introduce your application and point to useful places in the API for learning more.
-Run "rake doc:app" to generate API documentation for your models, controllers, helpers, and libraries.
+gem 'devise'
+bundel install
+restart server
+rails generate devise:install
+rails generate devise USER --> creates a model
+rake db:migrate
+rake route --> change route if necessary
+
+(bundle open devise to see what's in the gem)
+(bundle show devise to see where it is)
+
+Layout: Links for sign up and sign in
+
+
+....
+configure.password.length (where ?)
+Layout: mensaje de alert y de notice
+<body>
+<% if flash (:notice) %>
+<div class = "alert alert_success">
+<% = flash (:notice) %>
+</div>
+
+Controler: wine controller: if @wine save
+redirect ...notice : 'wine success'
+
+...
+
+Crear una relación entre los dos modelos (wine + user)
+Necessity: One user can create various wines
+--> Models / User
+
+Necesitamos una migración para añadir USER ID to Wine table
+
+Rails generate migration AddUserToWine user_id:integer
+the same as rails generate migration add_user_to_wine user_id:integer
+
+rake db:migrate
+
+Go to Database/schema to see the data base tables
+the table wine should now have a user id
+
+Go to Models/Wine to create relation
+
+class Wine < ActiveRecord::Base
+  mount_uploader :label, ShotImageUploader
+
+  belongs_to :user
+
+  validates_presence_of :user, :name, :label
+  validates_length_of :name, :minimum => 4
+
+  attr_accessible :name, :label, :user
+
+  def to_s
+    title
+  end
+end
+
+and add the row: belongs_to :user 
+and we have to make sure that a wine can only be uploaded when a user is created
+
+validates_presence_of :user
+
+In Model/User we have to add the wine
+
+User 
+has_many :shots, :dependent => :destroy
+
+This means that when the user is deleted, so will be the wines 
+
+To have a current user go to controller and create it
+
+def create
+@wine = wine.new(params(:wine)) this is already there and then add
+@wine.user = current_user
+
+current user is a concept of devise
+
+
+  def create
+    @shot = Shot.new(params[:shot])
+    @shot.user = current_user
+
+    respond_to do |format|
+      if @shot.save
+        format.html { redirect_to shots_url, :notice => "New shot created" }
+        format.json { render json: @shot, status: :created, location: @shot }
+      else
+        format.html { render action: "new" }
+        format.json { render json: @shot.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
+Now change the view:
+in order to display the email when a user is logged in and to display anonimous when the user has not yet logged in
+
+If wine.user
+= wine.user_email
+else
+anonimous
+
+Atención: Cuál son los urls y vistas que deberían ser accessibles en logged in y en logged out. 
+Create a before filter
+
+before_filter :authenticate_user!, :except => (:index, :gallery)
+these are the pages that are visible to anyone. 
+
+in Layout
+<% if user_signed_in! %>
+Link to the new wine or to see all my wines
+
+Ahora tenemos que asegurarnos que cada usuario vea solo sus winos (hay una gallery publica como el Index de tripppple dónde podemos buscar todos los vinos  y ratings y descriptiones y luego hay una parte de wine cellar privado.:
+Concept: Mine
+Wine Controller
+cambiar: @wine = wine.all para que sea
+@wine = current_user.wine
+
+Now a user sees his wines and not the other's but using the direct link can edit the wines of others. So:
+
+Wine controller
+Cambiar Def edit y Def Update to be scope: current_user
+
